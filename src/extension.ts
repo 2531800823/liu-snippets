@@ -27,7 +27,6 @@ function createCommand(snippet: ISnippet, commandName: string) {
         vscode.window.showErrorMessage("不在编辑器中");
         return;
       }
-      const document = editor.document;
 
       editor
         .edit((editBuilder) => {
