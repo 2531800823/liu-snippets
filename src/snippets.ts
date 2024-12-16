@@ -17,7 +17,7 @@ export const snippets = [
     prefix: "use",
     body: `$1const ref$2 = useRef();`,
     description: "创建 React 的 useRef.",
-    scope: ["typescriptreact", "javascriptreact"],
+    scope: ["typescript", "typescriptreact", "javascript", "javascriptreact"],
     kind: vscode.CompletionItemKind.Function,
   },
   {
@@ -26,7 +26,16 @@ export const snippets = [
     prefix: "use",
     body: `const [state$1, set$1] = useState();`,
     description: "创建 React 的 useState.",
-    scope: ["typescriptreact", "javascriptreact"],
+    scope: ["typescript", "typescriptreact", "javascript", "javascriptreact"],
+    kind: vscode.CompletionItemKind.Function,
+  },
+  {
+    label: "useMemo",
+    import: "import { useMemo } from 'react';\n",
+    prefix: "use",
+    body: `useMemo(()=>{$1},[]);`,
+    description: "创建 React 的 useMemo.",
+    scope: ["typescript", "typescriptreact", "javascript", "javascriptreact"],
     kind: vscode.CompletionItemKind.Function,
   },
   {
@@ -37,7 +46,7 @@ export const snippets = [
 		$1
 	}, []);`,
     description: "创建 React 的 useEffect.",
-    scope: ["typescriptreact", "javascriptreact"],
+    scope: ["typescript", "typescriptreact", "javascript", "javascriptreact"],
     kind: vscode.CompletionItemKind.Function,
   },
   {
