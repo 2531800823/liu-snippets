@@ -1,12 +1,12 @@
 import * as vscode from "vscode";
 import { ISnippet, snippets } from "./snippets";
+import { toArray } from "./utils/toArray";
+import { transformImport } from "./ast/transformImport";
 
 export function activate(context: vscode.ExtensionContext) {
   snippets.forEach((item) => {
     const commandName = `liu-snippets.${item.label}`;
-    const disposableCommand = createCommand(item, commandName);
     const disposableSnippet = createSnippet(item, commandName);
-    disposableCommand && context.subscriptions.push(disposableCommand);
     context.subscriptions.push(disposableSnippet);
   });
 
@@ -14,36 +14,6 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {}
-
-function createCommand(snippet: ISnippet, commandName: string) {
-  if (!snippet.import) {
-    return;
-  }
-
-  return vscode.commands.registerCommand(commandName, () => {
-    try {
-      const editor = vscode.window.activeTextEditor;
-      if (!editor) {
-        vscode.window.showErrorMessage("不在编辑器中");
-        return;
-      }
-
-      editor
-        .edit((editBuilder) => {
-          const topPosition = new vscode.Position(0, 0);
-          editBuilder.insert(topPosition, snippet.import!);
-          return;
-        })
-        .then(() => {
-          vscode.window.showInformationMessage("代码已插入顶部！");
-        });
-    } catch (e: any) {
-      vscode.window.showErrorMessage(
-        "Error during AST transformation: " + e.message
-      );
-    }
-  });
-}
 
 function createSnippet(snippet: ISnippet, commandName: string) {
   const {
@@ -53,27 +23,107 @@ function createSnippet(snippet: ISnippet, commandName: string) {
     body,
     description,
     prefix,
+    replace,
   } = snippet;
+
+  const prefixArray = toArray(prefix);
 
   return vscode.languages.registerCompletionItemProvider(
     scope,
     {
-      provideCompletionItems() {
+      provideCompletionItems(document, position) {
         const completion = new vscode.CompletionItem(label, kind);
 
-        completion.insertText = new vscode.SnippetString(body);
+        completion.insertText = new vscode.SnippetString(replace ? "" : body);
 
         completion.documentation = new vscode.MarkdownString(description);
 
-        completion.sortText = "a";
+        completion.sortText = label;
 
-        completion.command = {
-          command: commandName,
-          title: label,
-        };
+        completion.additionalTextEdits = genTextEdits(
+          document,
+          position,
+          snippet
+        );
+
         return [completion];
       },
     },
-    prefix
+    ...prefixArray
   );
+}
+
+/** 创建生成 TextEdits */
+function genTextEdits(
+  document: vscode.TextDocument,
+  position: vscode.Position,
+  snippet: ISnippet
+) {
+  const textEdits: vscode.TextEdit[] = [];
+
+  const importTextEdits = genImportTextEdits(document, snippet);
+  textEdits.push(...importTextEdits);
+
+  const removeTextEdits = genRemoveTextEdits(document, position, snippet);
+  textEdits.push(...removeTextEdits);
+
+  const replaceTextEdits = genReplaceTextEdits(document, position, snippet);
+  textEdits.push(...replaceTextEdits);
+
+  return textEdits;
+}
+
+function genReplaceTextEdits(
+  document: vscode.TextDocument,
+  position: vscode.Position,
+  snippet: ISnippet
+) {
+  if (!snippet?.replace) {
+    return [];
+  }
+  return snippet.replace(document, position);
+}
+
+function genRemoveTextEdits(
+  document: vscode.TextDocument,
+  position: vscode.Position,
+  snippet: ISnippet
+) {
+  if (snippet?.remove !== true) {
+    return [];
+  }
+  const line = document.lineAt(position.line);
+  const lineText = line.text;
+  const range = new vscode.Range(
+    new vscode.Position(position.line, 0), // 行首
+    new vscode.Position(position.line, lineText.length) // 行尾
+  );
+
+  return [vscode.TextEdit.delete(range)];
+}
+
+function genImportTextEdits(document: vscode.TextDocument, snippet: ISnippet) {
+  if (!snippet?.import) {
+    return [];
+  }
+  const textEdits: vscode.TextEdit[] = [];
+  const importStatements = transformImport(document.getText(), snippet.import);
+  importStatements.forEach((item) => {
+    if (item.line === -1) {
+      textEdits.push(
+        vscode.TextEdit.insert(new vscode.Position(0, 0), item.code)
+      );
+    } else {
+      // 因为使用的时候默认+1，所以先-1
+      const currentLine = item.line - 1;
+      const line = document.lineAt(currentLine);
+      const range = new vscode.Range(
+        new vscode.Position(currentLine, 0),
+        new vscode.Position(currentLine, line.text.length)
+      );
+
+      textEdits.push(vscode.TextEdit.replace(range, item.code));
+    }
+  });
+  return textEdits;
 }
