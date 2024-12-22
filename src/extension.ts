@@ -1,30 +1,58 @@
-import * as vscode from "vscode";
-import { ISnippet, snippets } from "./snippets";
-import { toArray } from "./utils/toArray";
-import { transformImport } from "./ast/transformImport";
+import * as vscode from 'vscode';
+import { toArray } from './utils/toArray';
+import { transformImport } from './ast/transformImport';
+import { ISnippet } from './snippets';
+import { getPathName, saveToOsTemp } from './config/getConfig.js';
+import { removeConfig } from './config/removeConfig';
 
-export function activate(context: vscode.ExtensionContext) {
-  snippets.forEach((item) => {
-    const commandName = `liu-snippets.${item.label}`;
-    const disposableSnippet = createSnippet(item, commandName);
-    context.subscriptions.push(disposableSnippet);
-  });
+export async function activate(context: vscode.ExtensionContext) {
+  try {
+    const filePath = await getPathName();
+    const snippet = require(filePath) as ISnippet[];
 
-  vscode.window.showInformationMessage("插件已激活🚀🚀🚀");
+    snippet.forEach((item) => {
+      const commandName = `liu-snippets.${item.label}`;
+      const disposableSnippet = createSnippet(item, commandName);
+      context.subscriptions.push(disposableSnippet);
+    });
+
+    // 注册命令，删除 文件配置
+    const removeFileCommand = vscode.commands.registerCommand('liu-snippets.removeConfigFile', async () => {
+      const confirm = await vscode.window.showQuickPick(['确认删除', '取消'], {
+        placeHolder: `确认删除文件：${filePath}?`,
+      });
+      if (confirm === '确认删除') {
+        try {
+          removeConfig(filePath);
+          vscode.window.showInformationMessage(`文件已成功删除：${filePath}`);
+        } catch (error) {
+          vscode.window.showErrorMessage(`删除失败：${error}`);
+        }
+      } else {
+        vscode.window.showInformationMessage('操作已取消');
+      }
+    });
+
+    // 注册命令，打开文件配置更改
+    const openFileCommand = vscode.commands.registerCommand('liu-snippets.openConfigFile', async () => {
+      // 文件不存在写入
+      saveToOsTemp(filePath);
+      const document = await vscode.workspace.openTextDocument(filePath);
+      vscode.window.showTextDocument(document);
+    });
+
+    context.subscriptions.push(removeFileCommand, openFileCommand);
+
+    vscode.window.showInformationMessage('插件已激活🚀🚀🚀');
+  } catch {
+    vscode.window.showInformationMessage('失败了😭😭😭');
+  }
 }
 
 export function deactivate() {}
 
-function createSnippet(snippet: ISnippet, commandName: string) {
-  const {
-    kind = vscode.CompletionItemKind.Snippet,
-    scope = "*",
-    label,
-    body,
-    description,
-    prefix,
-    replace,
-  } = snippet;
+function createSnippet(snippet: ISnippet, _commandName: string) {
+  const { kind = vscode.CompletionItemKind.Snippet, scope = '*', label, body, description, prefix, replace } = snippet;
 
   const prefixArray = toArray(prefix);
 
@@ -34,17 +62,13 @@ function createSnippet(snippet: ISnippet, commandName: string) {
       provideCompletionItems(document, position) {
         const completion = new vscode.CompletionItem(label, kind);
 
-        completion.insertText = new vscode.SnippetString(replace ? "" : body);
+        completion.insertText = new vscode.SnippetString(replace ? '' : body);
 
         completion.documentation = new vscode.MarkdownString(description);
 
         completion.sortText = label;
 
-        completion.additionalTextEdits = genTextEdits(
-          document,
-          position,
-          snippet
-        );
+        completion.additionalTextEdits = genTextEdits(document, position, snippet);
 
         return [completion];
       },
@@ -54,11 +78,7 @@ function createSnippet(snippet: ISnippet, commandName: string) {
 }
 
 /** 创建生成 TextEdits */
-function genTextEdits(
-  document: vscode.TextDocument,
-  position: vscode.Position,
-  snippet: ISnippet
-) {
+function genTextEdits(document: vscode.TextDocument, position: vscode.Position, snippet: ISnippet) {
   const textEdits: vscode.TextEdit[] = [];
 
   const importTextEdits = genImportTextEdits(document, snippet);
@@ -73,22 +93,14 @@ function genTextEdits(
   return textEdits;
 }
 
-function genReplaceTextEdits(
-  document: vscode.TextDocument,
-  position: vscode.Position,
-  snippet: ISnippet
-) {
+function genReplaceTextEdits(document: vscode.TextDocument, position: vscode.Position, snippet: ISnippet) {
   if (!snippet?.replace) {
     return [];
   }
-  return snippet.replace(document, position);
+  return snippet.replace(document, position, vscode);
 }
 
-function genRemoveTextEdits(
-  document: vscode.TextDocument,
-  position: vscode.Position,
-  snippet: ISnippet
-) {
+function genRemoveTextEdits(document: vscode.TextDocument, position: vscode.Position, snippet: ISnippet) {
   if (snippet?.remove !== true) {
     return [];
   }
@@ -110,9 +122,7 @@ function genImportTextEdits(document: vscode.TextDocument, snippet: ISnippet) {
   const importStatements = transformImport(document.getText(), snippet.import);
   importStatements.forEach((item) => {
     if (item.line === -1) {
-      textEdits.push(
-        vscode.TextEdit.insert(new vscode.Position(0, 0), item.code)
-      );
+      textEdits.push(vscode.TextEdit.insert(new vscode.Position(0, 0), item.code));
     } else {
       // 因为使用的时候默认+1，所以先-1
       const currentLine = item.line - 1;

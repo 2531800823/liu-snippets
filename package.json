@@ -7,14 +7,24 @@
   "engines": {
     "vscode": "^1.89.0"
   },
-  "categories": [
-    "Other"
-  ],
-  "activationEvents": [
-    "*"
-  ],
+  "categories": ["Other"],
+  "activationEvents": ["*"],
   "main": "./dist/extension.js",
-  "contributes": {},
+  "contributes": {
+    "commands": [
+      {
+        "command": "liu-snippets.openConfigFile",
+        "title": "%cmd.openConfig%",
+        "category": "liu-snippets"
+      },
+      {
+        "command": "liu-snippets.removeConfigFile",
+        "title": "%cmd.removeConfig%",
+        "category": "liu-snippets"
+      }
+    ]
+  },
+
   "scripts": {
     "vscode:prepublish": "npm run package",
     "compile": "npm run check-types && npm run lint && node esbuild.js",
@@ -26,14 +36,24 @@
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "check-types": "tsc --noEmit",
-    "lint": "echo \"lint\"",
+    "lint": "eslint . --fix",
+    "prettier": "prettier --write .",
     "test": "vscode-test"
   },
   "devDependencies": {
+    "@babel/core": "^7.26.0",
+    "@babel/generator": "^7.26.3",
+    "@babel/parser": "^7.26.3",
+    "@babel/preset-env": "^7.26.0",
+    "@babel/template": "^7.25.9",
+    "@babel/traverse": "^7.26.4",
+    "@babel/types": "^7.26.3",
+    "@eslint/js": "^9.17.0",
     "@types/babel__core": "^7.20.5",
     "@types/babel__generator": "^7.6.8",
     "@types/babel__template": "^7.4.4",
     "@types/babel__traverse": "^7.20.6",
+    "@types/fs-extra": "^11.0.4",
     "@types/mocha": "^10.0.9",
     "@types/node": "20.x",
     "@types/vscode": "^1.89.0",
@@ -41,15 +61,13 @@
     "@vscode/test-electron": "^2.4.1",
     "@vscode/vsce": "^3.2.1",
     "esbuild": "^0.24.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react": "^7.37.2",
+    "fs-extra": "^11.2.0",
+    "globals": "^15.14.0",
     "npm-run-all": "^4.1.5",
+    "prettier": "^3.4.2",
     "typescript": "^5.3.3",
-    "@babel/core": "^7.26.0",
-    "@babel/generator": "^7.26.3",
-    "@babel/parser": "^7.26.3",
-    "@babel/preset-env": "^7.26.0",
-    "@babel/template": "^7.25.9",
-    "@babel/traverse": "^7.26.4",
-    "@babel/types": "^7.26.3"
-  },
-  "dependencies": {}
+    "typescript-eslint": "^8.18.1"
+  }
 }

@@ -1,26 +1,7 @@
-import * as vscode from 'vscode';
+// vs code kind Function
+const kindFunction = 2;
 
-export interface ISnippet {
-  label: string;
-  /** import 语句 */
-  import?: string;
-  prefix: string[] | string;
-  body: string;
-  description: string;
-  scope: string[];
-  kind: vscode.CompletionItemKind;
-  /** 是否删除当前行 */
-  remove?: boolean;
-  /** 替换当前行数据 */
-  replace?: (
-    document: vscode.TextDocument,
-    position: vscode.Position,
-    vscode: typeof import('vscode')
-  ) => vscode.TextEdit[];
-}
-
-/** 后续抽离到用户配置 */
-export const snippets = [
+const snippets = [
   {
     label: 'useRef',
     import: "import { useRef } from 'react';\n",
@@ -28,7 +9,7 @@ export const snippets = [
     body: `const ref$1 = useRef();`,
     description: '创建 React 的 useRef.',
     scope: ['typescript', 'typescriptreact', 'javascript', 'javascriptreact'],
-    kind: vscode.CompletionItemKind.Function,
+    kind: kindFunction,
   },
   {
     label: 'useState',
@@ -37,7 +18,7 @@ export const snippets = [
     body: `const [state$1, set$1] = useState();`,
     description: '创建 React 的 useState.',
     scope: ['typescript', 'typescriptreact', 'javascript', 'javascriptreact'],
-    kind: vscode.CompletionItemKind.Function,
+    kind: kindFunction,
   },
   {
     label: 'useMemo',
@@ -46,18 +27,18 @@ export const snippets = [
     body: `useMemo(()=>{$1},[]);`,
     description: '创建 React 的 useMemo.',
     scope: ['typescript', 'typescriptreact', 'javascript', 'javascriptreact'],
-    kind: vscode.CompletionItemKind.Function,
+    kind: kindFunction,
   },
   {
     label: 'useEffect',
     import: "import { useEffect } from 'react';\n",
     prefix: ['use', 'useEffect'],
     body: `useEffect(() => {
-		$1
-	}, []);`,
+          $1
+      }, []);`,
     description: '创建 React 的 useEffect.',
     scope: ['typescript', 'typescriptreact', 'javascript', 'javascriptreact'],
-    kind: vscode.CompletionItemKind.Function,
+    kind: kindFunction,
   },
   {
     label: 'useSelector',
@@ -66,7 +47,7 @@ export const snippets = [
     body: `useSelector([$1])`,
     description: 'useSelector.',
     scope: ['typescript', 'typescriptreact', 'javascript', 'javascriptreact'],
-    kind: vscode.CompletionItemKind.Function,
+    kind: kindFunction,
   },
   {
     label: 'className',
@@ -74,7 +55,7 @@ export const snippets = [
     body: `className={s.$1}`,
     description: '快速生成 className.',
     scope: ['typescriptreact', 'javascriptreact'],
-    kind: vscode.CompletionItemKind.Function,
+    kind: kindFunction,
     remove: false,
   },
   {
@@ -84,7 +65,7 @@ export const snippets = [
     body: `className={classNames(s.$1)}`,
     description: '快速插件 classnames',
     scope: ['typescriptreact', 'javascriptreact'],
-    kind: vscode.CompletionItemKind.Function,
+    kind: kindFunction,
     remove: false,
   },
   {
@@ -94,8 +75,8 @@ export const snippets = [
     body: ``,
     description: '转换 className 为 插件',
     scope: ['typescriptreact', 'javascriptreact'],
-    kind: vscode.CompletionItemKind.Function,
-    replace: (document: vscode.TextDocument, position: vscode.Position) => {
+    kind: kindFunction,
+    replace: (document, position, vscode) => {
       const line = document.lineAt(position.line);
       const text = line.text;
       const regex = /className={(\w+)\.(\w+)}/g;
@@ -115,3 +96,5 @@ export const snippets = [
     },
   },
 ];
+
+module.exports = snippets;
